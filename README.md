@@ -13,12 +13,13 @@
 ![image](https://github.com/user-attachments/assets/2708424c-81b7-4174-b774-35eaa5a6bbc3)
 
 (3) 输入回调地址，然后点击开始监听。当窗口监听到支付消息时，就会发送支付信息到输入的回调地址
-![Uploading image.png…]()
+![image](https://github.com/user-attachments/assets/18ed6152-f58f-4147-9e6d-caf36cdf420b)
 
 
 
 **作者微信咨询：cola521x**
 ![Uploading d6240a67de496b5ed715ec4c06c80b3.jpg…]()
+
 
 
 
