@@ -269,7 +269,7 @@ def start_listen_click(event):
     #显示"终止监听"按钮
     endListenButton.place(x=210, y=200)
 
-    print("卡密: ",kamiVlaue.get())
+
     print("回调地址: ", payCallBackValue.get())
     print("监听间隔: ", listenIntervalValue.get())
 
