@@ -23,6 +23,8 @@
 
 
 
+
+
 2.需要二开的看这里：
 
 （1） 安装python环境
@@ -31,6 +33,9 @@
 
 （3） 打包成exe文件命令 pyinstaller --onefile --windowed  main.py
 如果需要doc窗展示 日志信息可以 命令去掉--windowed 打包
+
+
+
 
 
 
