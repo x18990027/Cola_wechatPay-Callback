@@ -9,6 +9,8 @@
   1.傻瓜式无脑使用【针对小白】
   
 (1)dist文件夹下面的exe是已经打包好了的插件，下载下来双击运行 
+支付回调输入自己接口回调信息的接口地址，如：http://ylb6.cn/test/wechat  
+注意要带上http/https 
 
 ![image](https://github.com/user-attachments/assets/f2bc78f4-9c11-4855-8089-1331470c2243)
 
