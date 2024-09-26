@@ -269,19 +269,16 @@ def start_listen_click(event):
     #显示"终止监听"按钮
     endListenButton.place(x=210, y=200)
 
-
     print("回调地址: ", payCallBackValue.get())
     print("监听间隔: ", listenIntervalValue.get())
-
-
 
     #开启一个新线程来执行main方法
     thread1 = threading.Thread(target=main)
 
     thread1.start()
 
-
-    print("开始监听了!")
+    print("=========欢迎使用支付支付插件 by cola====!")
+    print("================开始监听===============!")
 
 #终止监听按钮事件处理函数
 def end_listen_click(event):
