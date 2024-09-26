@@ -23,9 +23,41 @@
 
 
 
+2.需要二开的看这里：
+
+（1） 安装python环境
+（2） pip intsall 相关库
+（3） 打包成exe文件命令 pyinstaller --onefile --windowed  main.py
+如果需要doc窗展示 日志信息可以 命令去掉--windowed 打包
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **作者微信咨询**：cola521x
 
-![d6240a67de496b5ed715ec4c06c80b3](https://github.com/user-attachments/assets/4b19a703-220a-461a-b250-795c7e31cd87)
+![image](https://github.com/user-attachments/assets/07e50724-cb5c-480b-8977-c18c437e02e8)
+
 
 
 
