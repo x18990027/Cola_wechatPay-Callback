@@ -239,6 +239,23 @@ def initBaseConfigTab(notebook):
     frame.grid_rowconfigure(1, weight=1)
     frame.grid_columnconfigure(0, weight=1)
 
+    # 在按钮容器下方添加开源地址说明
+    github_frame = ttk.Frame(config_frame)
+    github_frame.grid(row=3, column=0, columnspan=2, pady=5, sticky="w")
+    
+    # 添加GitHub链接（需要VPN访问）
+    github_label = ttk.Label(github_frame, 
+                           text="GitHub获取插件最新版本：点我跳转 [请挂VPN访问]",
+                           foreground="blue",
+                           cursor="hand2")
+    github_label.pack(side="left")
+    
+    # 绑定点击事件
+    def open_github(event):
+        import webbrowser
+        webbrowser.open("https://github.com/x18990027/Cola_wechatPay-Callback/")
+        
+    github_label.bind("<Button-1>", open_github)
     return frame
 
 
