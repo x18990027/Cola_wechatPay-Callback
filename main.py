@@ -1,11 +1,13 @@
+import json  # 新增导入
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import threading
 
 #不加这个执行会报错  发生错误: [WinError -2147221008] 尚未调用 CoInitialize。
 # 安装依赖：pip install pywin32
 import pythoncom
 
+CONFIG_FILE = "config.json"
 kamiVlaue = None
 payCallBackValue = None
 listenIntervalValue = None
@@ -46,66 +48,58 @@ def getDepth(control, depth):
 
 
 def explore_control(control, depth, target_depth):
-    global last_matched_info
+    global last_matched_info, amount, amountAll, sender, timestamp
     try:
         name = control.Name
+        if name and depth == target_depth:
+            # 优化金额匹配逻辑
+            amount_match = re.search(r'收款金额￥([\d.]+)', name)
+            if amount_match:
+                amount = amount_match.group(1)
+                last_matched_info = f"收款金额: ￥{amount}, "
 
-        if name:
-            if depth == target_depth:
-                # 匹配收款金额信息
-                match = re.search(r'收款金额￥([\d.]+)', name)
-                if match:
-                    global amount
-                    amount = match.group(1)
-                    last_matched_info = f"收款金额: ￥{amount}, "
+                # 优化发款人匹配
+                sender_match = re.search(r'来自\s*([^\s]+)', name)
+                sender = sender_match.group(1) if sender_match else ''
+                if sender:
+                    last_matched_info += f"来自: {sender}, "
 
-                    # 匹配来自、到账时间信息
-                    match = re.search(r'来自(.+?)到账时间', name)
-                    global sender
-                    sender = match.groups(1) if match else ('')
-                    if sender:
-                        last_matched_info += f"来自: {sender if sender else '未知'}, " if sender else ""
+                # 优化到账时间匹配
+                time_match = re.search(r'到账时间[:：]\s*([^\s]+)', name)
+                timestamp = time_match.group(1) if time_match else ''
+                if timestamp:
+                    last_matched_info += f"到账时间: {timestamp}, "
 
-                    match = re.search(r'到账时间(.+?)备注', name)
-                    global timestamp
-                    timestamp = match.group(1) if match else ('')
-                    if timestamp:
-                        last_matched_info += f"到账时间: {timestamp if timestamp else '未知'}, " if timestamp else ""
-
-                        # 匹配来自、到账时间信息
-                match = re.search(r'共计￥([\d.]+)', name)
-                global amountAll
-                amountAll = match.group(1) if match else ('')
+                # 优化总额匹配
+                total_match = re.search(r'共计￥([\d.]+)', name)
+                if not total_match:  # 兼容不同文案
+                    total_match = re.search(r'收款金额总额.*?￥([\d.]+)', name)
+                amountAll = total_match.group(1) if total_match else ''
                 if amountAll:
                     last_matched_info += f"收款金额总额: ￥{amountAll}, "
-                # if match:
-                #     global amountAll
-                #     amountAll = match.group(1)
-                #     last_matched_info += f"收款金额总额: ￥{amountAll}, "
-
                 return
         # 递归处理子控件
         for child in control.GetChildren():
             explore_control(child, depth + 4, target_depth)
     except Exception as e:
         print(f"发生错误: {str(e)}")
-
-
 def process_wechat_window(wechat_window, prev_info):
-    global last_matched_info
+    global last_matched_info, amount, amountAll, sender, timestamp
     if wechat_window.Exists(0):
-        # 假设 getDepth 函数已经定义好，并且 wechat_window 是一个有效的控件对象
         depth_of_match = getDepth(wechat_window, 0)
-
         explore_control(wechat_window, 0, depth_of_match)
         if last_matched_info and last_matched_info != prev_info:
-            print(last_matched_info)
-            print("-----------------------------------------------------------------")
-            print("持续监听中...")
-            print("-----------------------------------------------------------------")
+            # 添加支付信息日志
+            log_message("💰 监听到支付信息：")
+            log_message(f"▸ {last_matched_info.replace(', ', '\n▸ ')}")
+            log_message("-"*30)
             prev_info = last_matched_info
 
-            # 向服务器发送请求
+            # 添加请求开始日志
+            log_message("📡 正在请求回调接口...")
+            log_message(f"▪ 收款金额：￥{amount}")
+            log_message(f"▪ 收款总额：￥{amountAll}")
+            log_message("——— 请求回调 ———")
             send_http_request(last_matched_info, amount, amountAll, sender, timestamp)
 
     else:
@@ -114,23 +108,26 @@ def process_wechat_window(wechat_window, prev_info):
 
 
 def send_http_request(info, amount, amountAll, sender, timestamp):
-    # 接收通知的Url
     server_url = payCallBackValue.get()
     try:
-
         params = {
             'amount': amount if amount is not None else '',
             'amountAll': amountAll if amountAll is not None else '',
             'sender': sender if sender is not None else '',
             'timestamp': timestamp if timestamp is not None else '',
         }
-        # 将金额、来自、到账时间POST给服务器
         response = requests.post(server_url, json=params)
-        # 通知成功
-        # print("通知成功")
+        response.raise_for_status()
+        # 添加成功日志
+        log_message(f"✅ 回调成功（状态码 {response.status_code}）")
+        log_message(f"📤 发送参数：{params}")
+        log_message("-"*30 + "\n")
     except Exception as e:
-        # 通知失败
-        print(f"通知服务器失败...: {str(e)}")
+        # 添加失败日志
+        log_message(f"❌ 回调失败：{str(e)}")
+        log_message(f"⚠️ 失败参数：{params}")
+        log_message("🛑 请检查：1.网络连接 2.服务器状态 3.接口协议")
+        log_message("-"*30 + "\n")
 
 def main():
     pythoncom.CoInitialize()
@@ -189,115 +186,139 @@ def on_tab_change(event):
 
 #初始化Frame作为基本配置选项卡的内容:
 def initBaseConfigTab(notebook):
-    frame = ttk.Frame(notebook, width=300, height=200)
+    frame = ttk.Frame(notebook)
 
-    # # 创建"卡密"标签组件
-    # kamiLabel = tk.Label(frame, text="卡密：", font=("Microsoft YaHei", 10), fg="black")
-    # # 使用 place 布局管理器 设置绝对位置 放置标签
-    # kamiLabel.place(x=80, y=20)
+    # 配置项部分
+    config_frame = ttk.Frame(frame)
+    config_frame.grid(row=0, column=0, padx=10, pady=5, sticky="nw")
 
-    # 创建 卡密 输入框并设置默认文本
-    # global kamiVlaue
-    # kamiVlaue = tk.StringVar()
-    # kamiEntry = tk.Entry(frame,textvariable=kamiVlaue)
-    # kamiEntry.insert(0, "")  # 设置默认文本
-    # # 设置输入框宽度
-    # kamiEntry.config(width=30)
-    # kamiEntry.place(x=140,y=20)
+    # 支付回调地址（添加输入监听）
+    ttk.Label(config_frame, text="支付回调地址：").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+    pay_entry = ttk.Entry(config_frame, textvariable=payCallBackValue, width=40)
+    pay_entry.grid(row=0, column=1, padx=5, pady=5)
+    payCallBackValue.trace_add("write", lambda *_: save_config())  # 输入实时保存
 
-    # 创建"支付回调"标签组件
-    payCallbackLabel = tk.Label(frame, text="支付回调：", font=("Microsoft YaHei", 10), fg="black")
-    # 使用 place 布局管理器 设置绝对位置 放置标签
-    payCallbackLabel.place(x=52, y=70)
+    # 监听间隔（添加输入监听）
+    ttk.Label(config_frame, text="监听间隔(秒)：").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+    listenIntervalEntry = ttk.Entry(config_frame, textvariable=listenIntervalValue, width=8)
+    listenIntervalEntry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+    listenIntervalValue.trace_add("write", lambda *_: save_config())  # 输入实时保存
 
-    # 创建 支付回调 输入框
-    global payCallBackValue
-    payCallBackValue = tk.StringVar()
-    payCallBackEntry = tk.Entry(frame,textvariable=payCallBackValue)
-    payCallBackEntry.insert(0, "")  # 设置默认文本
-    # 设置输入框宽度
-    payCallBackEntry.config(width=30)
-    payCallBackEntry.place(x=140,y=70)
+    # 日志面板（配置项下方）
+    log_frame = ttk.LabelFrame(frame, text="运行日志", padding=5)
+    log_frame.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
 
-    # 创建"监听间隔(秒)"标签组件
-    listenIntervalLabel = tk.Label(frame, text="监听间隔(秒)：", font=("Microsoft YaHei", 10), fg="black")
-    # 使用 place 布局管理器 设置绝对位置 放置标签
-    listenIntervalLabel.place(x=30, y=120)
+    global log_text
+    log_text = tk.Text(log_frame,
+                     height=10,
+                     state='disabled',
+                     bg="black",    # 黑色背景
+                     fg="white",    # 白色文字
+                     insertbackground="white")  # 光标颜色
+    log_text.pack(side="left", fill="both", expand=True)
 
-    # 创建 支付回调 输入框并设置默认文本
-    global listenIntervalValue
-    listenIntervalValue = tk.StringVar()
-    listenIntervalEntry = tk.Entry(frame,textvariable=listenIntervalValue)
-    listenIntervalEntry.insert(0, "")  # 设置默认文本
-    # 设置输入框宽度
-    listenIntervalEntry.config(width=5)
-    listenIntervalEntry.place(x=140,y=120)
+    scrollbar = ttk.Scrollbar(log_frame, orient="vertical", command=log_text.yview)
+    scrollbar.pack(side="right", fill="y")
+    log_text.configure(yscrollcommand=scrollbar.set)
 
-    # 创建 开始监听 按钮
-    global startListenButton
-    startListenButton = tk.Button(frame, text="开始监听")
-    startListenButton.bind("<Button-1>", start_listen_click)
-    startListenButton.place(x=210, y=200)
+    # 按钮容器
+    btn_frame = ttk.Frame(config_frame)
+    btn_frame.grid(row=2, column=0, columnspan=2, pady=10)
 
-    #创建 终止监听 按钮
-    global endListenButton
-    endListenButton = tk.Button(frame, text="终止监听")
-    endListenButton.bind("<Button-1>", end_listen_click)
-    # endListenButton.place(x=210, y=200) #一开始不显示
+    global controlButton
+
+    # 创建统一按钮
+    controlButton = tk.Button(btn_frame, text="开始监听",
+                            command=toggle_listen,
+                            bg="#87CEFA",  # 初始蓝色背景
+                            fg="black",    # 黑色文字
+                            activebackground="#FF4500")  # 点击时的红色
+    controlButton.pack(side="left", padx=5)
+
+    # 配置框架自适应
+    frame.grid_rowconfigure(1, weight=1)
+    frame.grid_columnconfigure(0, weight=1)
 
     return frame
 
-# #初始化Frame作为支付日志选项卡的内容:
-# def payLogs(notebook):
-#     frame = ttk.Frame(notebook, width=300, height=200)
-#
-#     return frame
 
-
-
-# 开始监听 按钮回调函数
-def start_listen_click(event):
-    global islisten
-    if islisten:
-        print("正在运行，请勿重复点击！")
-        return
-
-    islisten = True
-    #隐藏"开始监听按钮"按钮 (如果是pack布局，就要用pack_forget方法)
-    startListenButton.place_forget()
-
-    #显示"终止监听"按钮
-    endListenButton.place(x=210, y=200)
-
-    print("回调地址: ", payCallBackValue.get())
-    print("监听间隔: ", listenIntervalValue.get())
-
-    #开启一个新线程来执行main方法
-    thread1 = threading.Thread(target=main)
-
-    thread1.start()
-
-    print("=========欢迎使用支付支付插件 by cola====!")
-    print("================开始监听===============!")
 
 #终止监听按钮事件处理函数
 def end_listen_click(event):
     global islisten
+    islisten = False
+    # 移除原有的文本修改操作
+    if event and event.widget:  # 添加空值检查
+        event.widget['text'] = "正在终止"
+
+
+
+def toggle_listen():
+    global islisten
     if not islisten:
-        print("正在关闭，请勿重复点击！")
-        return
-    islisten = False #退出监听标记
-    event.widget['text'] = "正在终止"
+        # 启动监听
+        islisten = True
+        controlButton.config(text="终止监听", bg="#FF4500")
+        # 直接调用启动逻辑
+        log_message("✅ 启动参数")
+        log_message(f"• 回调地址: {payCallBackValue.get()}")
+        log_message(f"• 监听间隔: {listenIntervalValue.get()}秒")
+        log_message("🌟" * 30)
+        log_message("✅ 欢迎使用支付支付插件 by cola!")
+        log_message("PS：启动时会监听到最新一条的收款记录并发送回调，请忽略！\n")
+        log_message("🚀 开始监听微信支付通知...")
+        log_message("🌟" * 30)
+        thread1 = threading.Thread(target=main)
+        thread1.start()
+    else:
+        # 终止监听
+        islisten = False
+        controlButton.config(text="开始监听", bg="#87CEFA")
+        log_message("🛑 监听已终止")
+        controlButton['state'] = 'normal'  # 确保按钮状态恢复
 
 
+def load_config():
+    try:
+        with open(CONFIG_FILE, 'r') as f:
+            config = json.load(f)
+            payCallBackValue.set(config.get('callback_url', ''))
+            listenIntervalValue.set(config.get('interval', '1'))
+    except (FileNotFoundError, json.JSONDecodeError):
+        payCallBackValue.set('')
+        listenIntervalValue.set('2')
+
+def save_config():
+    config = {
+        'callback_url': payCallBackValue.get(),
+        'interval': listenIntervalValue.get()
+    }
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f)
+
+def log_message(message):
+    log_text.configure(state='normal')
+    log_text.insert(tk.END, f"{time.strftime('%Y-%m-%d %H:%M:%S')} {message}\n")
+    log_text.configure(state='disabled')
+    log_text.see(tk.END)  # 自动滚动到底部
 
 if __name__ == '__main__':
     root = tk.Tk()
+
+    # Initialize StringVars
+    payCallBackValue = tk.StringVar()
+    listenIntervalValue = tk.StringVar()
+
+    # Then load config
+    load_config()
+
+    # 绑定窗口关闭事件
+    root.protocol("WM_DELETE_WINDOW", lambda: [save_config(), root.destroy()])
     root.title("作者微信：cola521x")  # 设置窗口标题
 
     # 设置窗口大小并居中显示
-    window_width = 500
-    window_height = 400
+    window_width = 600  # 调整为600宽度
+    window_height = 500  # 增加高度
     center_window(root, window_width, window_height)
 
     # 设置图标。图片格式
@@ -308,7 +329,7 @@ if __name__ == '__main__':
     notebook = ttk.Notebook(root)
 
     # 向Notebook添加选项卡
-    notebook.add(initBaseConfigTab(notebook), text="微信支付回调插件")
+    notebook.add(initBaseConfigTab(notebook), text="微信支付回调插件 V1.1.0")
     # notebook.add(payLogs(notebook), text="收款日志")
 
     # 布局Notebook
