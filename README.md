@@ -13,6 +13,7 @@ PS：启动时会监听到最新一条的收款记录并发送回调，请忽略
   
 (1)dist文件夹下面的exe是已经打包好了的插件，下载下来双击运行 
 支付回调输入自己接口回调信息的接口地址，
+
 例如：https://ylmcat.com/test/wechat  
 注意要带上http/https 
 
@@ -72,7 +73,8 @@ PS：启动时会监听到最新一条的收款记录并发送回调，请忽略
 
 **作者微信咨询**：cola521x
 
-![image](https://github.com/user-attachments/assets/07e50724-cb5c-480b-8977-c18c437e02e8)
+![6bc848e0c3b19b0283c2d263ecf18ed](https://github.com/user-attachments/assets/534db367-32c4-4d17-b4c9-3f592c4bf386)
+
 
 
 
