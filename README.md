@@ -5,15 +5,20 @@
 但是也存在限制微信版本已经容易出现风控等问题，于是我这边想到了一种新的回调监听方式，通过监听微信支付窗口的消息内容实现支付回调
 这样能做到无视微信版本，不会产生任何风控。安全无风险！同时支持个人的收款码和赞赏码。
 
+PS：启动时会监听到最新一条的收款记录并发送回调，请忽略！
+
 **使用方法：**
   
   1.傻瓜式无脑使用【针对小白】
   
 (1)dist文件夹下面的exe是已经打包好了的插件，下载下来双击运行 
-支付回调输入自己接口回调信息的接口地址，例如：https://ylmcat.com/test/wechat  
+支付回调输入自己接口回调信息的接口地址，
+
+例如：https://ylmcat.com/test/wechat  
 注意要带上http/https 
 
-![image](https://github.com/user-attachments/assets/f2bc78f4-9c11-4855-8089-1331470c2243)
+![796565641b0b7f40889ad4b0fe74969](https://github.com/user-attachments/assets/dda2d842-8d1e-4ac4-a61d-e31691afb19b)
+
 
 (2)登录微信打开微信支付窗口，记住一定要拖出来窗口，可以最小化。
 ![image](https://github.com/user-attachments/assets/2708424c-81b7-4174-b774-35eaa5a6bbc3)
@@ -68,7 +73,8 @@
 
 **作者微信咨询**：cola521x
 
-![image](https://github.com/user-attachments/assets/07e50724-cb5c-480b-8977-c18c437e02e8)
+![6bc848e0c3b19b0283c2d263ecf18ed](https://github.com/user-attachments/assets/534db367-32c4-4d17-b4c9-3f592c4bf386)
+
 
 
 
